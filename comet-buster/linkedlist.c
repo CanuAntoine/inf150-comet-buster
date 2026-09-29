@@ -15,21 +15,27 @@ list_ptr list_new(void)
  * */
 list_ptr list_add(sprite_t sprite, list_ptr list)
 {
-  return NULL;
+  list_ptr cell = malloc(sizeof(s_list_node_t));
+  cell->data = sprite;
+  cell->next = list;
+  return cell;
 }
 
 /* Return true if the list is empty
  * */
 bool list_is_empty(list_ptr l)
 {
-  return true;
+  return (l == NULL);
 }
 
 /* Return the next cel in list or NULL
  * */
 list_ptr list_next(list_ptr l)
 {
-  return NULL;
+  if (l == NULL) {
+    return NULL;
+  }
+  return l->next;
 }
 
 /* Search the first cel of the list & 
@@ -37,7 +43,10 @@ list_ptr list_next(list_ptr l)
  * */
 sprite_t list_head_sprite(list_ptr l)
 {
-  return NULL;
+  if (l == NULL) {
+    return NULL;
+  }
+  return l->data;
 }
 
 /* Search the last cel of a list 
@@ -46,13 +55,39 @@ sprite_t list_head_sprite(list_ptr l)
  * */
 sprite_t list_pop_sprite(list_ptr * l)
 {
-  return NULL;
+  if (*l == NULL) {
+    return NULL;
+  }
+
+  list_ptr cur = *l;
+  while (cur->next != NULL) {
+    cur = cur->next;
+  }
+  sprite_t sprite = cur->data;
+  list_remove(cur, l);
+  return sprite;
 }
 
-/* Remove the given cel in a list
+/* Remove the given cell in a list
  * */
 void list_remove(list_ptr elt, list_ptr *l)
 {
+  if (elt == NULL || l == NULL) {
+    return;
+  }
+  if (elt == *l) {
+    *l = elt->next;
+  } else {
+    list_ptr prev = *l;
+    while (prev != NULL && prev->next != elt) {
+      prev = prev->next;
+    }
+    if (prev != NULL) {
+      prev->next = elt->next;
+    }
+  }
+  free(elt);
+  return;
 }
 
 /* Wipe out a list. 
@@ -60,13 +95,24 @@ void list_remove(list_ptr elt, list_ptr *l)
  * */
 void list_free(list_ptr l)
 {
+  while (l != NULL) {
+    list_ptr next = l->next;
+    sprite_free(l->data);
+    free(l);
+    l = next;
+  }
 }
 
 /* Return the length of a list
  * */
 int list_length(list_ptr l)
 {
-  return 0;
+  int count = 0;
+  while (l != NULL) {
+    count += 1;
+    l = l->next;
+  }
+  return count;
 }
 
 /* Reverse the order of a list
