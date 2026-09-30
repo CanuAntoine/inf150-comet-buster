@@ -14,6 +14,8 @@
 #define BULLET_SPEED        10
 #define DEFAULT_PTSIZE      24
 #define NUMBER_OF_LIFES     5
+#define LEVEL_TIME_SECONDS  60
+#define FRAME_TIME_MS       20
 #include "level.h"
 
 #define GDB()  __asm__("int $0x3")
@@ -28,10 +30,12 @@ list_ptr l_sprite_explosion;
 list_ptr l_sprite_text;
 list_ptr l_sprite_life_counter;
 list_ptr l_score_el = NULL;
+list_ptr l_timer_el = NULL;
 
 bool shoot_again;
 int score;
 int level = LEVEL_MIN;
+int timer = 0;
 
 /* Declaration of few prototypes because there is no .h file with them */
 int init_sdl(void);
@@ -46,6 +50,7 @@ void draw_sprites(list_ptr *l_sprite);
 void split(sprite_t old_comet, list_ptr **l_sprite_comet, enum sprite_type new_type);
 void split_and_score(list_ptr element, list_ptr *l_sprite_comet, bool update_score);
 void save_score(const char * nickname, int score);
+void draw_timer(TTF_Font *font);
 
 /* SDL Initialisation. Create windows and so on
  *  return 0 if everything is ok, otherwise 1.
@@ -186,6 +191,24 @@ void draw_life_counter(void) {
     l_sprite_life_counter = list_add(sprite, l_sprite_life_counter);
     x += 15;
   }
+}
+
+void draw_timer(TTF_Font *font) {
+  SDL_Surface *timer_surf;
+  SDL_Color timer_color = {255, 255, 255, 0};
+  char timer_text[64];
+  sprite_t sprite;
+  int seconds_left = LEVEL_TIME_SECONDS - (timer * FRAME_TIME_MS) / 1000;
+
+  if (seconds_left < 0) seconds_left = 0;
+
+  sprintf(timer_text, "Temps: %02d", seconds_left);
+  timer_surf = TTF_RenderText_Solid(font, timer_text, timer_color);
+  sprite = sprite_new_text(timer_surf, SCREEN_WIDTH - 150, 5);
+  if (l_timer_el)
+    list_remove(l_timer_el, &l_sprite_text);
+  l_timer_el = list_add(sprite, l_sprite_text);
+  l_sprite_text = l_timer_el;
 }
 
 /* Draw the new level ban,
@@ -329,7 +352,6 @@ int main(int argc, char* argv[]) {
   int colorkey;
   bool collide;
   int cu, cv;
-  int timer = 0;
   sprite_t sprite_life_counter;
   sprite_t current_sprite;
   int ret;
@@ -399,6 +421,7 @@ int main(int argc, char* argv[]) {
 
     // draw the text sprites
     draw_sprites(&l_sprite_text);
+    draw_timer(font_score);
 
     // draw the life counter sprites
     draw_sprites(&l_sprite_life_counter);
@@ -434,8 +457,8 @@ int main(int argc, char* argv[]) {
 	  sprite_t dead_sprite = list_pop_sprite(&l_sprite_life_counter);
           if (dead_sprite)
             sprite_free(dead_sprite);
-	} else {
-          printf(" ============ Game Over ============= \n");
+	} else { 
+	  printf(" ============ Game Over ============= \n");
           printf("Score: you reached level %d with %d points\n",level,score);
           save_score(nickname, score);
 	  fflush(stdout);
@@ -481,6 +504,15 @@ int main(int argc, char* argv[]) {
       list_free(l_sprite_comet);
       l_sprite_comet = list_new();
       gen_level(level, &l_sprite_comet, screen);
+      timer = 0;
+    }
+
+    if (timer >= (LEVEL_TIME_SECONDS * 1000) / FRAME_TIME_MS) {
+      printf(" ============ Game Over ============= \n");
+      printf("Temps ecoule ! Score: %d points, niveau %d\n", score, level);
+      save_score(nickname, score);
+      fflush(stdout);
+      gameover = true;
     }
 
     /* update the screen */
