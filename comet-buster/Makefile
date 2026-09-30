@@ -17,19 +17,19 @@ WARNINGS=-Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition -Wextra
 # define any directories containing header files other than /usr/include
 #
 # INCLUDES = -I/home/newhall/include  -I../include
-INCLUDES =
+INCLUDES = -I$(HOME)/local/include/SDL
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
 # LFLAGS = -L/home/newhall/lib  -L../lib
-LFLAGS =
+LFLAGS = -L$(HOME)/local/lib
 
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname
 #   option, something like (this will link in libmylib.so and libm.so:
 # LIBS = -lmylib -lm
-LIBS = -lSDL_ttf -lm
+LIBS = -lSDL_ttf -lm -lSDL_mixer
 
 # define the C source files
 SRCS = main.c linkedlist.c sprite.c collider.c level.c
