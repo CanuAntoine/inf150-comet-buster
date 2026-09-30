@@ -45,6 +45,7 @@ void next_level(TTF_Font *font);
 void draw_sprites(list_ptr *l_sprite);
 void split(sprite_t old_comet, list_ptr **l_sprite_comet, enum sprite_type new_type);
 void split_and_score(list_ptr element, list_ptr *l_sprite_comet, bool update_score);
+void save_score(const char * nickname, int score);
 
 /* SDL Initialisation. Create windows and so on
  *  return 0 if everything is ok, otherwise 1.
@@ -209,6 +210,17 @@ void next_level( TTF_Font * font) {
 }
 
 
+void save_score(const char * nickname, int score) {
+  FILE *f = fopen("scores.txt", "a");
+  if (f == NULL) {
+    printf("Erreur lors de la création du fichier");
+    return;
+  }
+  fprintf(f, "%s:%d\n", nickname, score);
+  fclose(f);
+}
+
+
 /* Blit a sprites list.
  *  Depending on the sprite type, we had physics & effects
  * */
@@ -323,7 +335,10 @@ int main(int argc, char* argv[]) {
   int ret;
   TTF_Font * font_score;
   TTF_Font * font_next_level;
+  char nickname[256];
 
+  printf("Entrer ton nom de pilote : ");
+  scanf("%s", nickname);
 
   ret = init_sdl();
   if (ret) {
@@ -422,7 +437,8 @@ int main(int argc, char* argv[]) {
 	} else {
           printf(" ============ Game Over ============= \n");
           printf("Score: you reached level %d with %d points\n",level,score);
-          fflush(stdout);
+          save_score(nickname, score);
+	  fflush(stdout);
           gameover = true;
         }
       }
