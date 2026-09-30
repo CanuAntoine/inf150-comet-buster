@@ -3,6 +3,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdbool.h>
+#include <SDL_mixer.h>
 
 #include "sprite.h"
 #include "collider.h"
@@ -31,6 +32,11 @@ list_ptr l_sprite_text;
 list_ptr l_sprite_life_counter;
 list_ptr l_score_el = NULL;
 list_ptr l_timer_el = NULL;
+Mix_Chunk *sound_fire;
+Mix_Chunk *sound_explosion;
+Mix_Chunk *sound_engine;
+Mix_Chunk *sound_meow;
+bool engine_playing = false;
 
 bool shoot_again;
 int score;
@@ -71,6 +77,18 @@ int init_sdl(void) {
 
   /* set keyboard repeat */
   SDL_EnableKeyRepeat(50, 50);
+
+  if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 512) < 0) {
+    printf("Erreur audio: %s\n", Mix_GetError());
+  } else {
+    printf("Audio OK\n");
+  }
+
+  sound_fire = Mix_LoadWAV("sounds/fire.wav");
+  sound_explosion = Mix_LoadWAV("sounds/explosion.wav");
+  sound_engine = Mix_LoadWAV("sounds/engine.wav");
+  sound_meow = Mix_LoadWAV("sounds/meow.wav");
+
   return 0;
 }
 
@@ -109,10 +127,21 @@ void general_events(char* keys) {
 void game_events(char* key) {
   SDLKey tabkey[] = {SDLK_UP,SDLK_DOWN,SDLK_LEFT,SDLK_RIGHT, SDLK_SPACE};
   int i;
+  if (key[tabkey[0]] || key[tabkey[1]]) { // UP ou DOWN : le moteur tourne
+    if (!engine_playing) {
+      Mix_PlayChannel(1, sound_engine, -1); // canal 1 dédié, -1 = boucle infinie
+      engine_playing = true;
+    }
+  } else {
+    if (engine_playing) {
+      Mix_HaltChannel(1);
+      engine_playing = false;
+    }
+  }
+
   if (key[tabkey[0]]) { //UP
     sprite_boost(sprite_ship, SPACESHIP_BOOST);
   }
-
   if (key[tabkey[1]]) { //DOWN
     sprite_boost(sprite_ship, -SPACESHIP_BOOST);
   }
@@ -140,6 +169,7 @@ void draw_explosion(int i,int j) {
   sprite = sprite_new(EXPLOSION, "sprites/explosion17.bmp", colorkey, 64, 25, 0, i-32, j-32, 0., 0., 0.);
   sprite->lifetime = 25;
   l_sprite_explosion = list_add(sprite, l_sprite_explosion);
+  Mix_PlayChannel(-1, sound_explosion, 0);
 }
 
 
@@ -155,6 +185,7 @@ void draw_fire(void) {
   sprite = sprite_new(BULLET, "sprites/bullet02.bmp", colorkey, 4, 1, 0, sprite_ship->rc_screen_xy.x+sprite_ship->size/2*(1+cos(dir_angle)), sprite_ship->rc_screen_xy.y+sprite_ship->size/2*(1-sin(dir_angle)), BULLET_SPEED*cos(dir_angle), BULLET_SPEED*(-sin(dir_angle)), 0.);
   sprite->lifetime = BULLET_LIFETIME;
   l_sprite_bullet = list_add(sprite, l_sprite_bullet);
+  Mix_PlayChannel(-1, sound_fire, 0);
 }
 
 /* Draw the score sprite
@@ -320,6 +351,7 @@ void split_and_score(list_ptr element, list_ptr *l_sprite_comet, bool update_sco
       break;
     case ET:
       diff = 60;
+      Mix_PlayChannel(-1, sound_meow, 0);
       break;
   }
   score += (update_score)?diff:0;
@@ -539,6 +571,11 @@ int main(int argc, char* argv[]) {
   TTF_CloseFont(font_score);
   TTF_Quit();
   /* cleanup SDL */
+  Mix_FreeChunk(sound_fire);
+  Mix_FreeChunk(sound_explosion);
+  Mix_FreeChunk(sound_engine);
+  Mix_FreeChunk(sound_meow);
+  Mix_CloseAudio();
   SDL_Quit();
   return 0;
 }//main
